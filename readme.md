@@ -1,6 +1,6 @@
 # Slacktivity
 
-[Slacktivity](https://slacktivity.hackclub.app) is a web service that generates dynamic activity cards based on a user's Slack presence and status. These cards can be shared across various platforms, allowing users to showcase their current activity and availability in a visually appealing format.
+[Slacktivity](https://slacktivity.hackclub.app) is a web service that generates dynamic activity cards based on a user's Slack presence and status!
 
 All this, powered by Python.
 
