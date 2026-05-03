@@ -1,0 +1,129 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    width="410"
+    height="{{ banner_height }}"
+    viewBox="0 0 410 {{ banner_height }}"
+>
+    <rect
+        width="410"
+        height="{{ banner_height }}"
+        rx="{{ border_radius_px }}"
+        fill="#{{ bg_color }}"
+    />
+
+    {% if avatar_b64 %}
+    <clipPath id="avatarClip">
+        <circle cx="52" cy="47" r="35" />
+    </clipPath>
+    <image
+        x="17"
+        y="12"
+        width="70"
+        height="70"
+        href="data:image/png;base64,{{ avatar_b64 }}"
+        clip-path="url(#avatarClip)"
+    />
+
+    <circle
+        cx="52"
+        cy="47"
+        r="38"
+        fill="none"
+        stroke="{{ avatar_border_color }}"
+        stroke-width="3"
+    />
+
+    <circle cx="80" cy="75" r="7" fill="#{{ bg_color }}" />
+    <circle cx="80" cy="75" r="5" fill="{{ presence_color }}" />
+    {% endif %}
+
+    <text
+        x="104"
+        y="33"
+        font-family="{{ font_family }}"
+        font-size="16"
+        font-weight="500"
+        fill="{{ text_primary }}"
+    >
+        {{ real_name }}
+        <tspan font-size="10" fill="{{ text_tertiary }}" dx="5" dy="1">
+            {% if pronouns %}({{ pronouns }}){% endif %}
+        </tspan>
+    </text>
+
+    <text
+        x="103"
+        y="51"
+        font-family="{{ font_family }}"
+        font-size="12.8"
+        font-weight="450"
+        fill="{{ text_secondary }}"
+    >
+        @{{ display_name }}
+    </text>
+
+    {% if title %}
+    <text
+        x="103"
+        y="68"
+        font-family="{{ font_family }}"
+        font-size="12.8"
+        fill="{{ text_tertiary }}"
+    >
+        {{ title }}
+    </text>
+    {% else %}
+    <text
+        x="103"
+        y="68"
+        font-family="{{ font_family }}"
+        font-size="12.8"
+        font-style="italic"
+        fill="{{ text_tertiary }}"
+    >
+        No title, yet...
+    </text>
+    {% endif %} {% if not hide_status %}
+    <line
+        x1="12"
+        y1="90"
+        x2="398"
+        y2="90"
+        stroke="{{ divider_color }}"
+        stroke-width="1"
+    />
+
+    {% if status_emoji_b64 %}
+    <image
+        x="{{ emoji_x }}"
+        y="110"
+        width="16"
+        height="16"
+        href="data:image/png;base64,{{ status_emoji_b64 }}"
+    />
+    <text
+        x="{{ status_text_x }}"
+        y="123"
+        font-family="{{ font_family }}"
+        font-size="13"
+        font-weight="500"
+        fill="{{ text_primary }}"
+    >
+        {{ status_text }}
+    </text>
+
+    {% else %}
+    <text
+        x="205"
+        y="113"
+        text-anchor="middle"
+        font-family="{{ font_family }}"
+        font-size="14"
+        font-style="italic"
+        fill="{{ text_tertiary }}"
+    >
+        {{ idle_message }}
+    </text>
+    {% endif %} {% endif %}
+</svg>

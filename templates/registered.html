@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>slacktivity! — registered</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #080c14;
+                --surface: #0e1420;
+                --surface2: #131a2b;
+                --border: #1e2a42;
+                --border-hover: #2e4068;
+                --text: #d6dff0;
+                --muted: #5a6a8a;
+                --accent: #7b9fd4;
+                --accent-dim: #3d5a8a;
+                --green: #6ecfb7;
+                --red: #e07b8a;
+                --mono: "DM Mono", monospace;
+                --sans: "DM Sans", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--sans);
+                font-weight: 300;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 1.5rem;
+            }
+
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 2.5rem 2.75rem;
+                max-width: 540px;
+                width: 100%;
+                animation: fadein 0.3s ease;
+            }
+
+            @keyframes fadein {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            h1 {
+                font-family: var(--mono);
+                font-size: clamp(1.6rem, 4vw, 2.1rem);
+                font-weight: 500;
+                color: var(--text);
+                line-height: 1.2;
+                margin-bottom: 0.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+                color: var(--muted);
+                margin-bottom: 2rem;
+                line-height: 1.5;
+            }
+
+            .divider {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 2rem 0;
+            }
+
+            .section-label {
+                font-family: var(--mono);
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                color: var(--muted);
+                text-transform: uppercase;
+                margin-bottom: 0.75rem;
+            }
+
+            .routes {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .route {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 0.75rem 1rem;
+                border-radius: 10px;
+                border: 1px solid var(--border);
+                background: var(--bg);
+                text-decoration: none;
+            }
+
+            .route-method {
+                font-family: var(--mono);
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 0.06em;
+                padding: 2px 7px;
+                border-radius: 5px;
+                margin-top: 1px;
+                flex-shrink: 0;
+            }
+
+            .cmd {
+                background: rgba(123, 159, 212, 0.12);
+                color: var(--accent);
+            }
+
+            .route-info {
+                flex: 1;
+            }
+
+            .route-path {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                color: var(--accent);
+                display: block;
+                margin-bottom: 2px;
+            }
+
+            .route-desc {
+                font-size: 0.8rem;
+                color: var(--muted);
+                line-height: 1.4;
+            }
+
+            .footer {
+                margin-top: 2rem;
+                font-size: 0.75rem;
+                color: var(--muted);
+                text-align: center;
+            }
+
+            .footer a {
+                color: var(--accent);
+                text-decoration: none;
+            }
+            .footer a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>you're all set!!</h1>
+            <p class="subtitle">
+                ur token's saved and slacktivity for slack is ready to go. you
+                can close this tab now :3
+            </p>
+
+            <hr class="divider" />
+
+            <p class="section-label">what's next</p>
+            <div class="routes">
+                <div class="route">
+                    <span class="route-method cmd">CMD</span>
+                    <div class="route-info">
+                        <span class="route-path">/slacktivity-preview</span>
+                        <span class="route-desc"
+                            >see your activity card + grab the link</span
+                        >
+                    </div>
+                </div>
+                <div class="route">
+                    <span class="route-method cmd">CMD</span>
+                    <div class="route-info">
+                        <span class="route-path">/slacktivity-create</span>
+                        <span class="route-desc"
+                            >customise your card's theme, colours, border radius
+                            & more</span
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <div class="footer">
+                made with &lt;3 by
+                <a href="https://hackclub.slack.com/team/U098A2QC2LF"
+                    >kaemori</a
+                >
+                &amp; the icarus alliance (+ kai)
+                <br />
+                <span style="font-style: italic; opacity: 0.6"
+                    >very much a wip !!!</span
+                >
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>slacktivity!</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #080c14;
+                --surface: #0e1420;
+                --surface2: #131a2b;
+                --border: #1e2a42;
+                --border-hover: #2e4068;
+                --text: #d6dff0;
+                --muted: #5a6a8a;
+                --accent: #7b9fd4;
+                --accent-dim: #3d5a8a;
+                --green: #6ecfb7;
+                --red: #e07b8a;
+                --mono: "DM Mono", monospace;
+                --sans: "DM Sans", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--sans);
+                font-weight: 300;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 1.5rem;
+            }
+
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 2.5rem 2.75rem;
+                max-width: 540px;
+                width: 100%;
+            }
+
+            h1 {
+                font-family: var(--mono);
+                font-size: clamp(1.6rem, 4vw, 2.1rem);
+                font-weight: 500;
+                color: var(--text);
+                line-height: 1.2;
+                margin-bottom: 0.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+                color: var(--muted);
+                margin-bottom: 2rem;
+                line-height: 1.5;
+            }
+
+            .divider {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 2rem 0;
+            }
+
+            .section-label {
+                font-family: var(--mono);
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                color: var(--muted);
+                text-transform: uppercase;
+                margin-bottom: 0.75rem;
+            }
+
+            .routes {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .route {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 0.75rem 1rem;
+                border-radius: 10px;
+                border: 1px solid var(--border);
+                background: var(--bg);
+                transition: border-color 0.15s;
+                cursor: pointer;
+                text-decoration: none;
+            }
+
+            .route:hover {
+                border-color: var(--border-hover);
+            }
+            .route.no-hover {
+                cursor: default;
+            }
+            .route.no-hover:hover {
+                border-color: var(--border);
+            }
+
+            .route-method {
+                font-family: var(--mono);
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 0.06em;
+                padding: 2px 7px;
+                border-radius: 5px;
+                margin-top: 1px;
+                flex-shrink: 0;
+            }
+
+            .get {
+                background: rgba(110, 207, 183, 0.12);
+                color: var(--green);
+            }
+            .del {
+                background: rgba(224, 123, 138, 0.12);
+                color: var(--red);
+            }
+            .cmd {
+                background: rgba(123, 159, 212, 0.12);
+                color: var(--accent);
+            }
+
+            .route-info {
+                flex: 1;
+            }
+
+            .route-path {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                color: var(--accent);
+                display: block;
+                margin-bottom: 2px;
+                word-break: break-all;
+            }
+
+            .route-desc {
+                font-size: 0.8rem;
+                color: var(--muted);
+                line-height: 1.4;
+            }
+
+            .footer {
+                margin-top: 2rem;
+                font-size: 0.75rem;
+                color: var(--muted);
+                text-align: center;
+            }
+
+            .footer a {
+                color: var(--accent);
+                text-decoration: none;
+            }
+            .footer a:hover {
+                text-decoration: underline;
+            }
+
+            .overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(4, 7, 14, 0.78);
+                backdrop-filter: blur(2px);
+                align-items: center;
+                justify-content: center;
+                z-index: 100;
+            }
+
+            .overlay.open {
+                display: flex;
+            }
+
+            .modal {
+                background: var(--surface2);
+                border: 1px solid var(--border-hover);
+                border-radius: 14px;
+                padding: 1.75rem 2rem;
+                width: min(400px, calc(100vw - 3rem));
+                animation: pop 0.15s ease;
+            }
+
+            @keyframes pop {
+                from {
+                    opacity: 0;
+                    transform: scale(0.96) translateY(6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+
+            .modal h2 {
+                font-family: var(--mono);
+                font-size: 1rem;
+                font-weight: 500;
+                margin-bottom: 0.4rem;
+                color: var(--text);
+            }
+
+            .modal p {
+                font-size: 0.8rem;
+                color: var(--muted);
+                margin-bottom: 1.25rem;
+                line-height: 1.5;
+            }
+
+            .modal input[type="text"] {
+                width: 100%;
+                background: var(--bg);
+                border: 1px solid var(--border-hover);
+                border-radius: 8px;
+                padding: 0.55rem 0.85rem;
+                font-family: var(--mono);
+                font-size: 0.85rem;
+                color: var(--text);
+                outline: none;
+                transition: border-color 0.15s;
+                margin-bottom: 1rem;
+            }
+
+            .modal input[type="text"]:focus {
+                border-color: var(--accent);
+            }
+            .modal input[type="text"]::placeholder {
+                color: var(--muted);
+            }
+
+            .modal-actions {
+                display: flex;
+                gap: 0.5rem;
+                justify-content: flex-end;
+            }
+
+            .btn {
+                font-family: var(--sans);
+                font-size: 0.8rem;
+                font-weight: 400;
+                padding: 0.45rem 1rem;
+                border-radius: 7px;
+                cursor: pointer;
+                border: 1px solid var(--border-hover);
+                transition:
+                    background 0.12s,
+                    border-color 0.12s;
+            }
+
+            .btn-ghost {
+                background: transparent;
+                color: var(--muted);
+            }
+
+            .btn-ghost:hover {
+                background: var(--surface);
+                color: var(--text);
+            }
+
+            .btn-primary {
+                background: rgba(123, 159, 212, 0.15);
+                border-color: var(--accent-dim);
+                color: var(--accent);
+            }
+
+            .btn-primary:hover {
+                background: rgba(123, 159, 212, 0.25);
+            }
+            .btn-primary:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>slacktivity!</h1>
+            <p class="subtitle">
+                lanyard-style presence cards for slack. drop your activity
+                anywhere!
+            </p>
+
+            <hr class="divider" />
+
+            <p class="section-label">api endpoints</p>
+            <div class="routes">
+                <a class="route" href="{{ BASE_LINK }}/signup">
+                    <span class="route-method get">GET</span>
+                    <div class="route-info">
+                        <span class="route-path">{{ BASE_LINK }}/signup</span>
+                        <span class="route-desc"
+                            >register for slacktivity!</span
+                        >
+                    </div>
+                </a>
+
+                <div class="route" onclick="openModal('fetch')">
+                    <span class="route-method get">GET</span>
+                    <div class="route-info">
+                        <span class="route-path"
+                            >{{ BASE_LINK }}/api/&lt;slack_id&gt;</span
+                        >
+                        <span class="route-desc"
+                            >fetch presence data for a user</span
+                        >
+                    </div>
+                </div>
+
+                <div class="route" onclick="openModal('delete')">
+                    <span class="route-method del">DEL</span>
+                    <div class="route-info">
+                        <span class="route-path"
+                            >{{ BASE_LINK }}/api/delete/&lt;slack_id&gt;</span
+                        >
+                        <span class="route-desc"
+                            >unregister yourself from slacktivity</span
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <p class="section-label">or use slash commands in slack</p>
+            <div class="routes">
+                <div class="route no-hover">
+                    <span class="route-method cmd">CMD</span>
+                    <div class="route-info">
+                        <span class="route-path">/slacktivity-register</span>
+                        <span class="route-desc"
+                            >register directly from slack without leaving the
+                            app</span
+                        >
+                    </div>
+                </div>
+                <div class="route no-hover">
+                    <span class="route-method cmd">CMD</span>
+                    <div class="route-info">
+                        <span class="route-path">/slacktivity-help</span>
+                        <span class="route-desc"
+                            >see all available commands and what they do</span
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <div class="footer">
+                made with &lt;3 by <a href="#">kaemori</a> &amp; the icarus
+                alliance (+ kai)
+                <br />
+                <span style="font-style: italic; opacity: 0.6"
+                    >very much a wip !!!</span
+                >
+            </div>
+        </div>
+
+        <div class="overlay" id="overlay" onclick="closeOnBackdrop(event)">
+            <div class="modal">
+                <h2 id="modal-title">enter your slack user id</h2>
+                <p id="modal-desc">
+                    you can find your user id in your slack profile -> more ->
+                    copy member id.
+                </p>
+                <input
+                    type="text"
+                    id="user-id-input"
+                    placeholder="U0XXXXXXXXX"
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" onclick="closeModal()">
+                        cancel
+                    </button>
+                    <button
+                        class="btn btn-primary"
+                        id="modal-go"
+                        onclick="goToRoute()"
+                        disabled
+                    >
+                        go ->
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const BASE = "{{ BASE_LINK }}";
+            let currentAction = null;
+
+            const input = document.getElementById("user-id-input");
+            const goBtn = document.getElementById("modal-go");
+
+            input.addEventListener("input", () => {
+                goBtn.disabled = input.value.trim().length === 0;
+            });
+
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !goBtn.disabled) goToRoute();
+                if (e.key === "Escape") closeModal();
+            });
+
+            function openModal(action) {
+                currentAction = action;
+                const title = document.getElementById("modal-title");
+                const desc = document.getElementById("modal-desc");
+                if (action === "delete") {
+                    title.textContent = "enter your slack user id";
+                    desc.textContent =
+                        "heads up: this will delete your api key and unregister you. pop in your user id to continue. sorry to see you go :<";
+                } else {
+                    title.textContent = "enter a slack user id";
+                    desc.textContent =
+                        "enter the user id you want to fetch presence data for. find it in their slack profile -> more -> copy member id.";
+                }
+                input.value = "";
+                goBtn.disabled = true;
+                document.getElementById("overlay").classList.add("open");
+                setTimeout(() => input.focus(), 50);
+            }
+
+            function closeModal() {
+                document.getElementById("overlay").classList.remove("open");
+                currentAction = null;
+            }
+
+            function closeOnBackdrop(e) {
+                if (e.target === document.getElementById("overlay"))
+                    closeModal();
+            }
+
+            function goToRoute() {
+                const id = input.value.trim();
+                if (!id) return;
+                const url =
+                    currentAction === "delete"
+                        ? `${BASE}/api/delete/${id}`
+                        : `${BASE}/api/${id}`;
+                window.open(url, "_blank");
+                closeModal();
+            }
+        </script>
+    </body>
+</html>
