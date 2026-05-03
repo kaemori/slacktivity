@@ -16,7 +16,7 @@ All this, powered by Python.
 
 ## Documentation
 
-For detailed information on how to use the Slacktivity API and integrate it with your Slack workspace, please refer to the [API Documentation](docs/usage.md) and the [Slack Integration Guide](docs/slack.md).
+For detailed information on how to use the Slacktivity API and integrate it with your Slack workspace, please refer to the [API Documentation](docs/usage.md) and the [Slack Integration Guide](docs/slack.md). You may also head to [the website](https://slacktivity.hackclub.app) to see how to get started!
 
 ---
 
