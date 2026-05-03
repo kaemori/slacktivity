@@ -1,12 +1,21 @@
 import os
 import threading
-from flask import Flask, request, redirect, url_for, jsonify, render_template, Response
+from flask import (
+    Flask,
+    request,
+    redirect,
+    url_for,
+    jsonify,
+    render_template,
+    Response,
+    abort,
+)
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
 from slack_sdk.models.blocks import SectionBlock, ImageBlock
 from slack_sdk.models.blocks.basic_components import MarkdownTextObject
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote_plus, unquote_plus
 from dotenv import load_dotenv
 import sqlite3
 import requests
@@ -393,7 +402,7 @@ def create(ack, command, client):
                     "label": {"type": "plain_text", "text": "custom background colour"},
                     "hint": {
                         "type": "plain_text",
-                        "text": "any css colour: hex (#1a1a2e), rgb(30,30,46), a gradient (linear-gradient(135deg,#1a1a2e,#16213e)), etc. leave blank to use the theme default",
+                        "text": "any css colour: hex (include the leading #, e.g. #1a1a2e), rgb(30,30,46) (no #), or a gradient (include # in hex stops, e.g. linear-gradient(135deg,#1a1a2e,#16213e)). leave blank to use the theme default",
                     },
                     "element": {
                         "type": "plain_text_input",
@@ -490,7 +499,9 @@ def handle_create_modal(ack, body, client):
     svg_params = {k: v for (k, v) in params.items() if k != "format"}
     svg_link = BASE_LINK + f"/user/{user_id}?" + urlencode(svg_params)
     png_link = BASE_LINK + f"/user/{user_id}?" + urlencode(params)
-    share_value = f"{user_id}|{channel_id}|{png_link}"
+    # encode the png_link when embedding into the action `value` to avoid
+    # accidental truncation or interpretation of characters like `#` by clients
+    share_value = f"{user_id}|{channel_id}|{quote_plus(png_link)}"
     post_ephemeral_or_dm(
         client,
         channel_id=channel_id,
@@ -530,7 +541,8 @@ the png is also below for you to use~""",
 @app.action("share_custom_card_to_channel")
 def share_custom_card_to_channel(ack, body, client):
     ack()
-    user_id, channel_id, png_link = body["actions"][0]["value"].split("|", 2)
+    user_id, channel_id, png_link_enc = body["actions"][0]["value"].split("|", 2)
+    png_link = unquote_plus(png_link_enc)
     user_token = db_get_token(user_id)
     if not user_token:
         post_ephemeral_or_dm(
@@ -619,7 +631,7 @@ def all_routes(text):
             404,
         )
     else:
-        return redirect(url_for("404_error"))
+        abort(404)
 
 
 @flask_app.route("/api/delete/<slack_id>", methods=["POST"])
@@ -638,7 +650,7 @@ def api_delete(slack_id):
         )
 
 
-@flask_app.route("/api/delete/<slack_id>")
+@flask_app.route("/api/user/<slack_id>")
 def api_user(slack_id):
     token = db_get_token(slack_id)
     if not token:

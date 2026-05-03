@@ -42,7 +42,6 @@ def get_user_data(slack_id: str, token: str) -> dict:
         "slack_status": presence,
         "status_emoji": profile.get("status_emoji", ""),
         "status_text": profile.get("status_text", ""),
-        "huddle_state": profile.get("huddle_state", "default_unset"),
     }
 
 

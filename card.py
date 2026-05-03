@@ -4,24 +4,18 @@ import base64
 import json
 from typing import Optional
 from PIL import ImageFont
-
-
 import tools.colorutils as colorutils
 
-import cairosvg
+try:
+    import cairosvg
+except Exception:
+    print(
+        "cairo import error! this doesnt happen on dev lmao im just testing on windows"
+    )
 
-FONT_FAMILY = (
-    "'Century Gothic', -apple-system, BlinkMacSystemFont, "
-    "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-)
-
+FONT_FAMILY = "'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 FONT_PATH = "/usr/local/share/fonts/centurygothic.ttf"
-
-PRESENCE_COLORS = {
-    "active": "#43B581",
-    "away": "#747F8D",
-}
-
+PRESENCE_COLORS = {"active": "#43B581", "away": "#747F8D"}
 THEME_COLORS = {
     "dark": {
         "bg": "1a1c1f",
@@ -52,26 +46,26 @@ THEME_COLORS = {
 }
 
 
-def fetch_b64(url: str) -> Optional[str]:
+def fetch_b64(url):
     if not url:
-        return None
+        return
     try:
         r = requests.get(url, timeout=5)
         return base64.b64encode(r.content).decode()
     except Exception:
-        return None
+        return
 
 
-def measure_text_width(text: str, font_path: str, font_size: int) -> float:
+def measure_text_width(text, font_path, font_size):
     try:
         font = ImageFont.truetype(font_path, font_size)
         bbox = font.getbbox(text)
         return bbox[2] - bbox[0]
     except Exception:
-        return len(text) * font_size * 0.6  # rough fallback
+        return len(text) * font_size * 0.6
 
 
-def fetch_emoji(emoji_name: str, _is_twmoji=False) -> Optional[str]:
+def fetch_emoji(emoji_name, _is_twmoji=False):
     emoji_name = emoji_name.strip(":")
     try:
         with open("emoji_list.json", "r", encoding="utf-8") as fh:
@@ -79,15 +73,15 @@ def fetch_emoji(emoji_name: str, _is_twmoji=False) -> Optional[str]:
         url = emoji_list.get(emoji_name)
         if not url:
             if _is_twmoji:
-                return None
+                return
             else:
                 return fetch_emoji("tw_" + emoji_name.strip(":"), _is_twmoji=True)
         return fetch_b64(url)
     except Exception:
-        return None
+        return
 
 
-def _e(s: str) -> str:
+def _e(s):
     return (
         s.replace("&", "&amp;")
         .replace("<", "&lt;")
@@ -96,11 +90,11 @@ def _e(s: str) -> str:
     )
 
 
-def _css(**props) -> str:
-    return "; ".join(f"{k.replace('_', '-')}: {v}" for k, v in props.items())
+def _css(**props):
+    return "; ".join(f"{k.replace("_","-")}: {v}" for (k, v) in props.items())
 
 
-def _maxlength(s: str, length: int) -> str:
+def _maxlength(s, length):
     return s if len(s) <= length else s[: length - 3] + "..."
 
 
@@ -111,61 +105,110 @@ def img(b64, mime="png", **style_kw):
 
 
 def render_card_sync(
-    data: dict,
-    theme: str = "light",
-    bg: Optional[str] = None,
-    border_radius: str = "10px",
-    idle_message: str = "Nothing much to say...",
-    hide_status: bool = False,
-) -> str:
+    data,
+    theme="light",
+    bg=None,
+    border_radius="10px",
+    idle_message="Nothing much to say...",
+    hide_status=False,
+):
     if isinstance(data, str):
         try:
             data = json.loads(data)
         except Exception:
             with open(data, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
-
     t = THEME_COLORS.get(theme, THEME_COLORS["light"])
-    bg_color = bg if bg else t["bg"]
+    raw_bg = bg if bg else t["bg"]
+    import re, secrets
 
+    def _is_safe_token(s):
+        if not s or len(s) > 200:
+            return False
+        if any(c in s for c in "<>\"'`;/\\"):
+            return False
+        if s.count("(") != s.count(")"):
+            return False
+        return True
+
+    def _parse_linear_gradient(s):
+        m = re.match("^\\s*linear-gradient\\s*\\((.*)\\)\\s*$", s, re.I)
+        if not m:
+            return
+        inner = m.group(1)
+        parts = [p.strip() for p in re.split(",(?![^()]*\\))", inner) if p.strip()]
+        if not parts:
+            return
+        if re.match("^[0-9.+-]+deg$", parts[0], re.I):
+            parts = parts[1:]
+        if len(parts) < 2:
+            return
+        for token in parts:
+            if not _is_safe_token(token):
+                return
+        gid = f"g{secrets.token_hex(6)}"
+        stops = []
+        n = len(parts)
+        for i, token in enumerate(parts):
+            tkn = token
+            offset = None
+            m2 = re.match("^(.*)\\s+([0-9.]+%?)$", token)
+            if m2:
+                tkn = m2.group(1).strip()
+                offset = m2.group(2)
+            # if token is a bare hex like '000' or 'ffffff', add leading '#'
+            if re.fullmatch(r"[0-9A-Fa-f]{3,8}", tkn):
+                tkn = f"#{tkn}"
+            if not offset:
+                offset = f"{int(i*100/(n-1))}%"
+            stops.append(f'<stop offset="{offset}" stop-color="{tkn}" />')
+        defs = f'<defs><linearGradient id="{gid}" x1="0%" y1="0%" x2="100%" y2="0%">{"".join(stops)}</linearGradient></defs>'
+        return defs, f"url(#{gid})"
+
+    bg_defs = ""
+    bg_fill = None
+    if raw_bg and isinstance(raw_bg, str):
+        raw_bg = raw_bg.strip()
+        if raw_bg.lower().startswith("linear-gradient"):
+            parsed = _parse_linear_gradient(raw_bg)
+            if parsed:
+                bg_defs, bg_fill = parsed
+        if not bg_fill and _is_safe_token(raw_bg):
+            if raw_bg.startswith("#"):
+                bg_fill = raw_bg
+            elif re.fullmatch("[0-9A-Fa-f]{3,8}", raw_bg):
+                bg_fill = f"#{raw_bg}"
+            else:
+                bg_fill = raw_bg
+    if not bg_fill:
+        bg_fill = f"#{t["bg"]}"
     user = data.get("slack_user", {})
     display_name = _e(user.get("display_name") or user.get("real_name") or "")
     real_name = _e(user.get("real_name", ""))
     title = _e(user.get("title", ""))
     pronouns = _e(_maxlength(user.get("pronouns", ""), 40))
     avatar_url = user.get("avatar_url", "")
-
     presence = data.get("slack_status", "")
     status_emoji = data.get("status_emoji", "")
     status_text = _e(_maxlength(data.get("status_text", ""), 55))
-
     avatar_b64 = fetch_b64(avatar_url)
     presence_color = PRESENCE_COLORS.get(presence, PRESENCE_COLORS["away"])
     avatar_border_color = colorutils.get_avatar_main_color_b64(
         avatar_b64, presence_color
     )
-
-    # parse border_radius to just the number for SVG rx=
     try:
         border_radius_px = int("".join(filter(str.isdigit, border_radius)))
     except Exception:
         border_radius_px = 10
-
-    # divider color — strip the hsl() for SVG since SVG supports it fine actually
     divider_color = t["divider"]
-
-    # status emoji
     status_emoji_b64 = None
     has_status_text = bool(status_text and status_text.strip())
     if status_emoji and status_emoji.strip():
         status_emoji_b64 = fetch_emoji(status_emoji.strip(":"))
-
     banner_height = 150 if not hide_status else 100
-
     EMOJI_SIZE = 16
     EMOJI_TEXT_GAP = 8
     CARD_WIDTH = 410
-
     if status_emoji_b64 and has_status_text:
         text_w = measure_text_width(status_text, FONT_PATH, 13)
         group_w = EMOJI_SIZE + EMOJI_TEXT_GAP + text_w
@@ -174,11 +217,12 @@ def render_card_sync(
     else:
         emoji_x = 0
         status_text_x = CARD_WIDTH / 2
-
     return render_template(
         "card.html",
         banner_height=banner_height,
-        bg_color=bg_color,
+        bg_color=raw_bg,
+        bg_fill=bg_fill,
+        bg_defs=bg_defs,
         border_radius_px=border_radius_px,
         text_primary=t["text_primary"],
         text_secondary=t["text_secondary"],
@@ -203,14 +247,14 @@ def render_card_sync(
 
 
 def render_card_sync_png(
-    data: dict,
-    theme: str = "light",
-    bg: Optional[str] = None,
-    border_radius: str = "10px",
-    idle_message: str = "Nothing much to say...",
-    hide_status: bool = False,
-    scale: float = 4.0,
-) -> bytes:
+    data,
+    theme="light",
+    bg=None,
+    border_radius="10px",
+    idle_message="Nothing much to say...",
+    hide_status=False,
+    scale=4.0,
+):
     svg_str = render_card_sync(
         data=data,
         theme=theme,

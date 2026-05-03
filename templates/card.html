@@ -5,11 +5,12 @@
     height="{{ banner_height }}"
     viewBox="0 0 410 {{ banner_height }}"
 >
+    {{ bg_defs|safe }}
     <rect
         width="410"
         height="{{ banner_height }}"
         rx="{{ border_radius_px }}"
-        fill="#{{ bg_color }}"
+        fill="{{ bg_fill }}"
     />
 
     {% if avatar_b64 %}
@@ -34,7 +35,7 @@
         stroke-width="3"
     />
 
-    <circle cx="80" cy="75" r="7" fill="#{{ bg_color }}" />
+    <circle cx="80" cy="75" r="7" fill="{{ bg_fill }}" />
     <circle cx="80" cy="75" r="5" fill="{{ presence_color }}" />
     {% endif %}
 
