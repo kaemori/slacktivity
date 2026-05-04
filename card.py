@@ -111,6 +111,7 @@ def render_card_sync(
     border_radius="10px",
     idle_message="Nothing much to say...",
     hide_status=False,
+    theme_overrides: Optional[dict] = None,
 ):
     if isinstance(data, str):
         try:
@@ -118,8 +119,24 @@ def render_card_sync(
         except Exception:
             with open(data, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
-    t = THEME_COLORS.get(theme, THEME_COLORS["light"])
-    raw_bg = bg if bg else t["bg"]
+    t = THEME_COLORS.get(theme, THEME_COLORS["light"]).copy()
+    if theme_overrides and isinstance(theme_overrides, dict):
+        for kk, vv in theme_overrides.items():
+            if vv is None:
+                continue
+            v = str(vv).strip()
+            if not v:
+                continue
+            t[kk] = v
+
+    if bg:
+        raw_bg = bg
+    else:
+        raw_bg = None
+        if theme_overrides and isinstance(theme_overrides, dict):
+            raw_bg = theme_overrides.get("bg")
+        if not raw_bg:
+            raw_bg = t.get("bg")
     import re, secrets
 
     def _is_safe_token(s):
@@ -181,7 +198,11 @@ def render_card_sync(
             else:
                 bg_fill = raw_bg
     if not bg_fill:
-        bg_fill = f"#{t["bg"]}"
+        t_bg = t.get("bg")
+        if t_bg:
+            bg_fill = t_bg if t_bg.startswith("#") else f"#{t_bg}"
+        else:
+            bg_fill = "#ffffff"
     user = data.get("slack_user", {})
     display_name = _e(user.get("display_name") or user.get("real_name") or "")
     real_name = _e(user.get("real_name", ""))
@@ -254,6 +275,7 @@ def render_card_sync_png(
     idle_message="Nothing much to say...",
     hide_status=False,
     scale=4.0,
+    theme_overrides: Optional[dict] = None,
 ):
     svg_str = render_card_sync(
         data=data,
@@ -262,5 +284,6 @@ def render_card_sync_png(
         border_radius=border_radius,
         idle_message=idle_message,
         hide_status=hide_status,
+        theme_overrides=theme_overrides,
     )
     return cairosvg.svg2png(bytestring=svg_str.encode(), scale=max(min(scale, 10), 0.2))

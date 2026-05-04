@@ -447,6 +447,147 @@ def create(ack, command, client):
                 },
                 {
                     "type": "input",
+                    "block_id": "text_primary_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "primary text colour (text_primary)",
+                    },
+                    "hint": {
+                        "type": "plain_text",
+                        "text": "any css colour: hex (include leading #) or rgb(...). leave blank for theme default",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "text_primary",
+                        "placeholder": {"type": "plain_text", "text": "#ffffff"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "text_secondary_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "secondary text colour (text_secondary)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "text_secondary",
+                        "placeholder": {"type": "plain_text", "text": "#aaaaaa"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "text_tertiary_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "tertiary text colour (text_tertiary)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "text_tertiary",
+                        "placeholder": {"type": "plain_text", "text": "#666666"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "divider_block",
+                    "optional": True,
+                    "label": {"type": "plain_text", "text": "divider colour (divider)"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "divider",
+                        "placeholder": {"type": "plain_text", "text": "#313336"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "idle_text_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "idle text colour (idle_text)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "idle_text",
+                        "placeholder": {"type": "plain_text", "text": "#aaaaaa"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "spotify_color_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "spotify colour (spotify_color)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "spotify_color",
+                        "placeholder": {"type": "plain_text", "text": "#1CB853"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "activity_title_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "activity title colour (activity_title)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "activity_title",
+                        "placeholder": {"type": "plain_text", "text": "#ffffff"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "activity_sub_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "activity subtitle colour (activity_sub)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "activity_sub",
+                        "placeholder": {"type": "plain_text", "text": "#cccccc"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "activity_time_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "activity time colour (activity_time)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "activity_time",
+                        "placeholder": {"type": "plain_text", "text": "#cccccc"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "username_color_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "username colour (username_color)",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "username_color",
+                        "placeholder": {"type": "plain_text", "text": "#cccccc"},
+                    },
+                },
+                {
+                    "type": "input",
                     "block_id": "hide_status_block",
                     "optional": True,
                     "label": {
@@ -496,6 +637,28 @@ def handle_create_modal(ack, body, client):
     params["idleMessage"] = idle_message
     if hide_status:
         params["hideStatus"] = "true"
+    # include any optional colour overrides from the modal inputs
+    color_keys = [
+        "text_primary",
+        "text_secondary",
+        "text_tertiary",
+        "divider",
+        "idle_text",
+        "spotify_color",
+        "activity_title",
+        "activity_sub",
+        "activity_time",
+        "username_color",
+        "bg",
+    ]
+    for ck in color_keys:
+        block = f"{ck}_block"
+        try:
+            val = (values[block][ck].get("value") or "").strip()
+        except Exception:
+            val = ""
+        if val:
+            params[ck] = val
     svg_params = {k: v for (k, v) in params.items() if k != "format"}
     svg_link = BASE_LINK + f"/user/{user_id}?" + urlencode(svg_params)
     png_link = BASE_LINK + f"/user/{user_id}?" + urlencode(params)
@@ -692,6 +855,26 @@ def card_user(slack_id):
     border_radius = request.args.get("borderRadius", "12px")
     idle_message = request.args.get("idleMessage", "not doing anything rn")
     hide_status = request.args.get("hideStatus", "false").lower() == "true"
+    # collect theme overrides
+    color_keys = [
+        "text_primary",
+        "text_secondary",
+        "text_tertiary",
+        "divider",
+        "idle_text",
+        "spotify_color",
+        "activity_title",
+        "activity_sub",
+        "activity_time",
+        "username_color",
+        "bg",
+    ]
+    theme_overrides = {}
+    for ck in color_keys:
+        v = request.args.get(ck)
+        if v:
+            theme_overrides[ck] = v
+
     svg = render_card_sync(
         data=data,
         theme=theme,
@@ -699,6 +882,7 @@ def card_user(slack_id):
         border_radius=border_radius,
         idle_message=idle_message,
         hide_status=hide_status,
+        theme_overrides=theme_overrides if theme_overrides else None,
     )
     out_format = request.args.get("format", None)
     try:
@@ -715,6 +899,7 @@ def card_user(slack_id):
         idle_message=idle_message,
         hide_status=hide_status,
         scale=scale,
+        theme_overrides=theme_overrides if theme_overrides else None,
     )
     return Response(png, mimetype="image/png")
 
