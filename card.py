@@ -93,7 +93,7 @@ def _css(**props):
 
 
 def _maxlength(s, length):
-    return s if len(s) <= length else s[: length - 3] + "..."
+    return s if len(s) <= length else s[: length - 3].strip() + "..."
 
 
 def img(b64, mime="png", **style_kw):
@@ -110,6 +110,7 @@ def render_card_sync(
     idle_message="Nothing much to say...",
     hide_status=False,
     theme_overrides: Optional[dict] = None,
+    badges: list = None,
 ):
     if isinstance(data, str):
         try:
@@ -202,9 +203,11 @@ def render_card_sync(
         else:
             bg_fill = "#ffffff"
     user = data.get("slack_user", {})
-    display_name = _e(user.get("display_name") or user.get("real_name") or "")
-    real_name = _e(user.get("real_name", ""))
-    title = _e(user.get("title", ""))
+    display_name = _maxlength(
+        _e(user.get("display_name") or user.get("real_name") or ""), 25
+    )
+    real_name = _maxlength(_e(user.get("real_name", "")), 22)
+    title = _maxlength(_e(user.get("title", "")), 47)
     pronouns = _e(_maxlength(user.get("pronouns", ""), 40))
     avatar_url = user.get("avatar_url", "")
     presence = data.get("slack_status", "")
@@ -247,7 +250,25 @@ def render_card_sync(
     has_status_text = bool(status_text and status_text.strip())
     if status_emoji and status_emoji.strip():
         status_emoji_b64 = fetch_emoji(status_emoji.strip(":"))
+    
+    # --- Badge Processing ---
+    processed_badges = []
+    badge_row_height = 0
+    if badges:
+        badge_row_height = 20
+        BADGE_EMOJI_SIZE = 12
+        BADGE_PADDING_X = 5
+        BADGE_GAP = 4
+        BADGE_SPACING = 6
+        x_offset = 104
+        for b in badges:
+            label_w = measure_text_width(b["label"], FONT_PATH, 10)
+            pill_w = BADGE_PADDING_X + BADGE_EMOJI_SIZE + BADGE_GAP + label_w + BADGE_PADDING_X
+            processed_badges.append({**b, "x": x_offset, "pill_w": pill_w, "label_w": label_w})
+            x_offset += pill_w + BADGE_SPACING
+
     banner_height = 150 if not hide_status else 100
+    banner_height += badge_row_height
     EMOJI_SIZE = 16
     EMOJI_TEXT_GAP = 8
     CARD_WIDTH = 410
@@ -265,6 +286,7 @@ def render_card_sync(
         bg_color=raw_bg,
         bg_fill=bg_fill,
         bg_defs=bg_defs,
+        avatar_defs=avatar_defs,
         border_radius_px=border_radius_px,
         text_primary=t["text_primary"],
         text_secondary=t["text_secondary"],
@@ -273,7 +295,6 @@ def render_card_sync(
         font_family=FONT_FAMILY,
         avatar_b64=avatar_b64,
         avatar_border_color=avatar_border_color,
-        avatar_defs=avatar_defs,
         presence_color=presence_color,
         real_name=real_name,
         display_name=display_name,
@@ -286,7 +307,10 @@ def render_card_sync(
         hide_status=hide_status,
         emoji_x=emoji_x,
         status_text_x=status_text_x,
+        processed_badges=processed_badges,
+        badge_row_height=badge_row_height,
     )
+
 
 
 def render_card_sync_png(
@@ -298,6 +322,7 @@ def render_card_sync_png(
     hide_status=False,
     scale=4.0,
     theme_overrides: Optional[dict] = None,
+    badges: list = None,
 ):
     svg_str = render_card_sync(
         data=data,
@@ -307,5 +332,6 @@ def render_card_sync_png(
         idle_message=idle_message,
         hide_status=hide_status,
         theme_overrides=theme_overrides,
+        badges=badges,
     )
     return cairosvg.svg2png(bytestring=svg_str.encode(), scale=max(min(scale, 10), 0.2))

@@ -24,6 +24,7 @@ from cryptography.fernet import Fernet
 import secrets
 import string
 import time
+import json
 from tools.slack_fetch import get_user_data
 from card import render_card_sync, render_card_sync_png
 from tools.update_emojies import try_update_emojies
@@ -72,6 +73,25 @@ def load_sql():
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_badges (
+            user_id    TEXT NOT NULL,
+            badge_id   TEXT NOT NULL,
+            emoji_name TEXT NOT NULL,
+            label      TEXT NOT NULL,
+            image_b64  TEXT NOT NULL,
+            position   INTEGER NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, badge_id)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_api_tokens (
+            user_id    TEXT PRIMARY KEY,
+            api_token  TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     conn.close()
     print("[slacktivity] db ready!!")
@@ -113,6 +133,75 @@ def db_delete_token(user_id):
     return deleted
 
 
+def db_get_badges(user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT badge_id, emoji_name, label, image_b64 FROM user_badges WHERE user_id = ? ORDER BY position ASC",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def db_add_badge(user_id, emoji_name, label, image_b64):
+    conn = get_db()
+    # Enforce max 2 badges
+    count = conn.execute(
+        "SELECT count(*) as cnt FROM user_badges WHERE user_id = ?", (user_id,)
+    ).fetchone()["cnt"]
+    if count >= 2:
+        conn.close()
+        return False, "you can only have up to 2 badges!!"
+
+    badge_id = alphanum8()
+    conn.execute(
+        "INSERT INTO user_badges (user_id, badge_id, emoji_name, label, image_b64) VALUES (?, ?, ?, ?, ?)",
+        (user_id, badge_id, emoji_name, label, image_b64),
+    )
+    conn.commit()
+    conn.close()
+    return True, badge_id
+
+
+def db_delete_badge(user_id, badge_id):
+    conn = get_db()
+    cur = conn.execute(
+        "DELETE FROM user_badges WHERE user_id = ? AND badge_id = ?",
+        (user_id, badge_id),
+    )
+    conn.commit()
+    deleted = cur.rowcount > 0
+    conn.close()
+    return deleted
+
+
+def db_get_api_token(user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT api_token FROM user_api_tokens WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    conn.close()
+    return row["api_token"] if row else None
+
+
+def db_set_api_token(user_id):
+    token = secrets.token_urlsafe(32)
+    conn = get_db()
+    conn.execute(
+        """
+        INSERT INTO user_api_tokens (user_id, api_token, created_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            api_token = excluded.api_token,
+            created_at = CURRENT_TIMESTAMP
+        """,
+        (user_id, token),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
 _pending_states = set()
 
 
@@ -144,8 +233,255 @@ def post_ephemeral_or_dm(client, *, channel_id, user_id, **kwargs):
         client.chat_postMessage(channel=user_id, **kwargs)
 
 
-@app.command("/slacktivity-help")
-def help(ack, command, client):
+@app.command("/slacktivity-badge-add")
+def badge_add(ack, command, client):
+    ack()
+    user_id = command["user_id"]
+    # check if registered
+    if not db_get_token(user_id):
+        post_ephemeral_or_dm(
+            client,
+            channel_id=command["channel_id"],
+            user_id=user_id,
+            text="u need to be registered first!! run `/slacktivity-register` :3",
+        )
+        return
+    # check badge count
+    badges = db_get_badges(user_id)
+    if len(badges) >= 2:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=command["channel_id"],
+            user_id=user_id,
+            text="u already have 2 badges!! remove one first with `/slacktivity-badge-remove`",
+        )
+        return
+    client.views_open(
+        trigger_id=command["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "slacktivity_badge_add_modal",
+            "private_metadata": f"{user_id}|{command["channel_id"]}",
+            "title": {"type": "plain_text", "text": "add a badge!"},
+            "submit": {"type": "plain_text", "text": "add"},
+            "close": {"type": "plain_text", "text": "cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "emoji_block",
+                    "label": {"type": "plain_text", "text": "emoji"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "emoji_name",
+                        "placeholder": {"type": "plain_text", "text": ":blahaj:"},
+                        "hint": {
+                            "type": "plain_text",
+                            "text": "must exist in our emoji list",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "label_block",
+                    "label": {"type": "plain_text", "text": "label"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "label",
+                        "placeholder": {"type": "plain_text", "text": "silly"},
+                    },
+                },
+            ],
+        },
+    )
+
+
+@app.view("slacktivity_badge_add_modal")
+def handle_badge_add_modal(ack, body, client):
+    user_id, channel_id = body["view"]["private_metadata"].split("|", 1)
+    values = body["view"]["state"]["values"]
+    emoji_input = (values["emoji_block"]["emoji_name"].get("value") or "").strip()
+    label_input = (values["label_block"]["label"].get("value") or "").strip()
+
+    if not emoji_input or not label_input:
+        ack(
+            response_action="errors",
+            errors={
+                "emoji_block": "emoji is required!",
+                "label_block": "label is required!",
+            },
+        )
+        return
+
+    if not (2 <= len(label_input) <= 10):
+        ack(
+            response_action="errors",
+            errors={"label_block": "label must be 2-10 characters!"},
+        )
+        return
+
+    emoji_name = emoji_input.strip(":")
+    try:
+        with open("emoji_list.json", "r", encoding="utf-8") as f:
+            known = json.load(f)["emojies"]
+        if emoji_name not in known:
+            ack(
+                response_action="errors",
+                errors={
+                    "emoji_block": "that emoji isn't in our list!! try a different one :("
+                },
+            )
+            return
+    except Exception as e:
+        ack(
+            response_action="errors",
+            errors={"emoji_block": f"error loading emojis: {e}"},
+        )
+        return
+
+    # fetch image
+    from card import fetch_emoji
+
+    image_b64 = fetch_emoji(emoji_name)
+    if not image_b64:
+        ack(
+            response_action="errors",
+            errors={"emoji_block": "couldn't fetch the emoji image :("},
+        )
+        return
+
+    success, result = db_add_badge(user_id, emoji_name, label_input, image_b64)
+    ack()
+    if success:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=channel_id,
+            user_id=user_id,
+            text=f"badge added!! enjoy ur {emoji_name} badge :3",
+        )
+    else:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=channel_id,
+            user_id=user_id,
+            text=result,
+        )
+
+
+@app.command("/slacktivity-badge-remove")
+def badge_remove(ack, command, client):
+    ack()
+    user_id = command["user_id"]
+    badges = db_get_badges(user_id)
+    if not badges:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=command["channel_id"],
+            user_id=user_id,
+            text="you don't have any badges!!",
+        )
+        return
+
+    elements = []
+    for b in badges:
+        elements.append(
+            {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"remove {b['emoji_name']} ({b['label']})",
+                },
+                "action_id": "remove_badge",
+                "value": f"{user_id}|{b['badge_id']}",
+            }
+        )
+
+    post_ephemeral_or_dm(
+        client,
+        channel_id=command["channel_id"],
+        user_id=user_id,
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "which badge do u want to remove?"},
+            },
+            {"type": "actions", "elements": elements},
+        ],
+    )
+
+
+@app.command("/slacktivity-badge-token")
+def badge_token(ack, command, client):
+    ack()
+    user_id = command["user_id"]
+    if not db_get_token(user_id):
+        post_ephemeral_or_dm(
+            client,
+            channel_id=command["channel_id"],
+            user_id=user_id,
+            text="u need to be registered first!! run `/slacktivity-register` :3",
+        )
+        return
+    token = db_set_api_token(user_id)
+    client.chat_postMessage(
+        channel=user_id,
+        text=f"here is ur secret badge API token: `{token}`\n\nkeep this secret!! anyone with this can modify ur badges! >w<",
+    )
+
+
+def require_api_token(f):
+    def wrapper(*args, **kwargs):
+        slack_id = kwargs.get("slack_id")
+        token = request.headers.get("X-Api-Token")
+        if not token or token != db_get_api_token(slack_id):
+            abort(401, description="invalid or missing API token")
+        return f(*args, **kwargs)
+
+    wrapper.__name__ = f.__name__
+    return wrapper
+
+
+@flask_app.route("/api/user/<slack_id>/badge", methods=["POST"])
+@require_api_token
+def api_add_badge(slack_id):
+    data = request.json
+    if not data:
+        return jsonify({"success": False, "error": "missing request body"}), 400
+    emoji_name = (data.get("emoji_name") or "").strip().strip(":")
+    label = (data.get("label") or "").strip()
+    if not emoji_name or not label:
+        return (
+            jsonify({"success": False, "error": "emoji_name and label are required"}),
+            400,
+        )
+    if not (2 <= len(label) <= 10):
+        return (
+            jsonify({"success": False, "error": "label must be 2-10 characters"}),
+            400,
+        )
+    try:
+        with open("emoji_list.json", "r", encoding="utf-8") as f:
+            known = json.load(f)["emojies"]
+        if emoji_name not in known:
+            return jsonify({"success": False, "error": "emoji not in our list!"}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "error loading emoji list"}), 500
+    from card import fetch_emoji
+
+    image_b64 = fetch_emoji(emoji_name)
+    if not image_b64:
+        return jsonify({"success": False, "error": "couldn't fetch emoji image"}), 500
+    success, result = db_add_badge(slack_id, emoji_name, label, image_b64)
+    if success:
+        return jsonify({"success": True, "badge_id": result})
+    return jsonify({"success": False, "error": result}), 400
+
+
+@flask_app.route("/api/user/<slack_id>/badge/<badge_id>", methods=["DELETE"])
+@require_api_token
+def api_delete_badge(slack_id, badge_id):
+    if db_delete_badge(slack_id, badge_id):
+        return jsonify({"success": True, "message": "badge deleted"})
+    return jsonify({"success": False, "error": "badge not found"}), 404
     ack()
     user_id = command["user_id"]
     post_ephemeral_or_dm(
@@ -171,6 +507,9 @@ to get started, first run `/slacktivity-register` to link your slack account~"""
 >`/slacktivity-unregister` — removes your account & deletes your token
 >`/slacktivity-preview` — shows your activity card with links to the svg & png versions
 >`/slacktivity-create` — customise your card (theme, background, border radius, idle message, etc.)
+>`/slacktivity-badge-add` — add a custom emoji badge to your card
+>`/slacktivity-badge-remove` — remove a badge from your card
+>`/slacktivity-badge-token` — generate a secret API token for your badges
 >`/slacktivity-help` — shows this message :3""",
                 },
             },
@@ -882,6 +1221,9 @@ def card_user(slack_id):
         if v:
             theme_overrides[ck] = v
 
+    # fetch badges
+    badges = db_get_badges(slack_id)
+
     svg = render_card_sync(
         data=data,
         theme=theme,
@@ -890,6 +1232,7 @@ def card_user(slack_id):
         idle_message=idle_message,
         hide_status=hide_status,
         theme_overrides=theme_overrides if theme_overrides else None,
+        badges=badges,
     )
     out_format = request.args.get("format", None)
     try:
@@ -907,6 +1250,7 @@ def card_user(slack_id):
         hide_status=hide_status,
         scale=scale,
         theme_overrides=theme_overrides if theme_overrides else None,
+        badges=badges,
     )
     return Response(png, mimetype="image/png")
 

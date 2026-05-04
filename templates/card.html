@@ -64,10 +64,33 @@
         @{{ display_name }}
     </text>
 
+    {% if processed_badges %}
+    {% for b in processed_badges %}
+    <rect
+        x="{{ b.x }}" y="56"
+        width="{{ b.pill_w }}" height="16"
+        rx="4" fill="{{ divider_color }}"
+    />
+    <image
+        x="{{ b.x + 5 }}" y="58"
+        width="12" height="12"
+        href="data:image/png;base64,{{ b.image_b64 }}"
+    />
+    <text
+        x="{{ b.x + 5 + 12 + 4 }}" y="68"
+        font-family="{{ font_family }}"
+        font-size="10"
+        fill="{{ text_primary }}"
+    >
+        {{ b.label }}
+    </text>
+    {% endfor %}
+    {% endif %}
+
     {% if title %}
     <text
         x="103"
-        y="68"
+        y="{{ 68 + badge_row_height }}"
         font-family="{{ font_family }}"
         font-size="12.8"
         fill="{{ text_tertiary }}"
@@ -77,7 +100,7 @@
     {% else %}
     <text
         x="103"
-        y="68"
+        y="{{ 68 + badge_row_height }}"
         font-family="{{ font_family }}"
         font-size="12.8"
         font-style="italic"
@@ -88,9 +111,9 @@
     {% endif %} {% if not hide_status %}
     <line
         x1="12"
-        y1="90"
+        y1="{{ 90 + badge_row_height }}"
         x2="398"
-        y2="90"
+        y2="{{ 90 + badge_row_height }}"
         stroke="{{ divider_color }}"
         stroke-width="1"
     />
@@ -98,14 +121,14 @@
     {% if status_emoji_b64 %}
     <image
         x="{{ emoji_x }}"
-        y="110"
+        y="{{ 110 + badge_row_height }}"
         width="16"
         height="16"
         href="data:image/png;base64,{{ status_emoji_b64 }}"
     />
     <text
         x="{{ status_text_x }}"
-        y="123"
+        y="{{ 123 + badge_row_height }}"
         font-family="{{ font_family }}"
         font-size="13"
         font-weight="500"
@@ -117,7 +140,7 @@
     {% else %}
     <text
         x="205"
-        y="113"
+        y="{{ 113 + badge_row_height }}"
         text-anchor="middle"
         font-family="{{ font_family }}"
         font-size="14"
