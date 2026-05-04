@@ -24,7 +24,6 @@ THEME_COLORS = {
         "text_tertiary": "#666666",
         "divider": "#313336",
         "idle_text": "#aaaaaa",
-        "spotify_color": "#1CB853",
         "activity_title": "#ffffff",
         "activity_sub": "#cccccc",
         "activity_time": "#cccccc",
@@ -37,7 +36,6 @@ THEME_COLORS = {
         "text_tertiary": "#999999",
         "divider": "#D5D5D5",
         "idle_text": "#444444",
-        "spotify_color": "#0d943d",
         "activity_title": "#000000",
         "activity_sub": "#777777",
         "activity_time": "#777777",
@@ -217,6 +215,29 @@ def render_card_sync(
     avatar_border_color = colorutils.get_avatar_main_color_b64(
         avatar_b64, presence_color
     )
+    # allow overriding the avatar accent (ring) via theme_overrides["avatar_accent"]
+    avatar_defs = ""
+    try:
+        a_accent = None
+        if theme_overrides and isinstance(theme_overrides, dict):
+            a_accent = theme_overrides.get("avatar_accent")
+        if a_accent and isinstance(a_accent, str):
+            a_accent_s = a_accent.strip()
+            # gradients
+            if a_accent_s.lower().startswith("linear-gradient"):
+                parsed = _parse_linear_gradient(a_accent_s)
+                if parsed:
+                    avatar_defs, avatar_border_color = parsed
+            else:
+                if _is_safe_token(a_accent_s):
+                    if a_accent_s.startswith("#"):
+                        avatar_border_color = a_accent_s
+                    elif re.fullmatch("[0-9A-Fa-f]{3,8}", a_accent_s):
+                        avatar_border_color = f"#{a_accent_s}"
+                    else:
+                        avatar_border_color = a_accent_s
+    except Exception:
+        pass
     try:
         border_radius_px = int("".join(filter(str.isdigit, border_radius)))
     except Exception:
@@ -252,6 +273,7 @@ def render_card_sync(
         font_family=FONT_FAMILY,
         avatar_b64=avatar_b64,
         avatar_border_color=avatar_border_color,
+        avatar_defs=avatar_defs,
         presence_color=presence_color,
         real_name=real_name,
         display_name=display_name,

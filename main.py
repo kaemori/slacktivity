@@ -518,20 +518,6 @@ def create(ack, command, client):
                 },
                 {
                     "type": "input",
-                    "block_id": "spotify_color_block",
-                    "optional": True,
-                    "label": {
-                        "type": "plain_text",
-                        "text": "spotify colour (spotify_color)",
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "spotify_color",
-                        "placeholder": {"type": "plain_text", "text": "#1CB853"},
-                    },
-                },
-                {
-                    "type": "input",
                     "block_id": "activity_title_block",
                     "optional": True,
                     "label": {
@@ -584,6 +570,27 @@ def create(ack, command, client):
                         "type": "plain_text_input",
                         "action_id": "username_color",
                         "placeholder": {"type": "plain_text", "text": "#cccccc"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "avatar_accent_block",
+                    "optional": True,
+                    "label": {
+                        "type": "plain_text",
+                        "text": "avatar accent (avatar_accent)",
+                    },
+                    "hint": {
+                        "type": "plain_text",
+                        "text": "any css colour or linear-gradient(...). leave blank to use averaged avatar colour",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "avatar_accent",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "#43B581 or linear-gradient(90deg,#f00,#0f0)",
+                        },
                     },
                 },
                 {
@@ -644,12 +651,12 @@ def handle_create_modal(ack, body, client):
         "text_tertiary",
         "divider",
         "idle_text",
-        "spotify_color",
         "activity_title",
         "activity_sub",
         "activity_time",
         "username_color",
         "bg",
+        "avatar_accent",
     ]
     for ck in color_keys:
         block = f"{ck}_block"
@@ -862,12 +869,12 @@ def card_user(slack_id):
         "text_tertiary",
         "divider",
         "idle_text",
-        "spotify_color",
         "activity_title",
         "activity_sub",
         "activity_time",
         "username_color",
         "bg",
+        "avatar_accent",
     ]
     theme_overrides = {}
     for ck in color_keys:
