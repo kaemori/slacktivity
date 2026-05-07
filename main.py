@@ -273,11 +273,11 @@ def badge_add(ack, command, client):
                     "element": {
                         "type": "plain_text_input",
                         "action_id": "emoji_name",
-                        "placeholder": {"type": "plain_text", "text": ":blahaj:"},
-                        "hint": {
-                            "type": "plain_text",
-                            "text": "must exist in our emoji list",
-                        },
+                        "placeholder": {"type": "plain_text", "text": ":blahaj-head:"},
+                    },
+                    "hint": {
+                        "type": "plain_text",
+                        "text": "must exist in our emoji list",
                     },
                 },
                 {
