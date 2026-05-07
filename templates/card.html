@@ -67,7 +67,7 @@
     {% if processed_badges %} {% for b in processed_badges %}
     <rect
         x="{{ b.x }}"
-        y="41"
+        y="39"
         width="{{ b.pill_w }}"
         height="16"
         rx="4"
@@ -75,7 +75,7 @@
     />
     <image
         x="{{ b.x + 5 }}"
-        y="43"
+        y="41"
         width="12"
         height="12"
         href="data:image/png;base64,{{ b.image_b64 }}"
