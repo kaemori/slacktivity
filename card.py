@@ -250,21 +250,29 @@ def render_card_sync(
     has_status_text = bool(status_text and status_text.strip())
     if status_emoji and status_emoji.strip():
         status_emoji_b64 = fetch_emoji(status_emoji.strip(":"))
-    
-    # --- Badge Processing ---
+
     processed_badges = []
     badge_row_height = 0
     if badges:
-        badge_row_height = 20
         BADGE_EMOJI_SIZE = 12
         BADGE_PADDING_X = 5
         BADGE_GAP = 4
         BADGE_SPACING = 6
-        x_offset = 104
+        display_text = "@" + (display_name or "")
+        display_w = measure_text_width(display_text, FONT_PATH, 12.8)
+        x_offset = 103 + display_w + 8
         for b in badges:
             label_w = measure_text_width(b["label"], FONT_PATH, 10)
-            pill_w = BADGE_PADDING_X + BADGE_EMOJI_SIZE + BADGE_GAP + label_w + BADGE_PADDING_X
-            processed_badges.append({**b, "x": x_offset, "pill_w": pill_w, "label_w": label_w})
+            pill_w = (
+                BADGE_PADDING_X
+                + BADGE_EMOJI_SIZE
+                + BADGE_GAP
+                + label_w
+                + BADGE_PADDING_X
+            )
+            processed_badges.append(
+                {**b, "x": x_offset, "pill_w": pill_w, "label_w": label_w}
+            )
             x_offset += pill_w + BADGE_SPACING
 
     banner_height = 150 if not hide_status else 100
@@ -310,7 +318,6 @@ def render_card_sync(
         processed_badges=processed_badges,
         badge_row_height=badge_row_height,
     )
-
 
 
 def render_card_sync_png(

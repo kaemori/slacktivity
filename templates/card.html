@@ -64,30 +64,32 @@
         @{{ display_name }}
     </text>
 
-    {% if processed_badges %}
-    {% for b in processed_badges %}
+    {% if processed_badges %} {% for b in processed_badges %}
     <rect
-        x="{{ b.x }}" y="56"
-        width="{{ b.pill_w }}" height="16"
-        rx="4" fill="{{ divider_color }}"
+        x="{{ b.x }}"
+        y="41"
+        width="{{ b.pill_w }}"
+        height="16"
+        rx="4"
+        fill="{{ divider_color }}"
     />
     <image
-        x="{{ b.x + 5 }}" y="58"
-        width="12" height="12"
+        x="{{ b.x + 5 }}"
+        y="43"
+        width="12"
+        height="12"
         href="data:image/png;base64,{{ b.image_b64 }}"
     />
     <text
-        x="{{ b.x + 5 + 12 + 4 }}" y="68"
+        x="{{ b.x + 5 + 12 + 4 }}"
+        y="51"
         font-family="{{ font_family }}"
         font-size="10"
         fill="{{ text_primary }}"
     >
         {{ b.label }}
     </text>
-    {% endfor %}
-    {% endif %}
-
-    {% if title %}
+    {% endfor %} {% endif %} {% if title %}
     <text
         x="103"
         y="{{ 68 + badge_row_height }}"
