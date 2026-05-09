@@ -482,6 +482,10 @@ def api_delete_badge(slack_id, badge_id):
     if db_delete_badge(slack_id, badge_id):
         return jsonify({"success": True, "message": "badge deleted"})
     return jsonify({"success": False, "error": "badge not found"}), 404
+
+
+@app.command("/slacktivity-help")
+def help(ack, command, client):
     ack()
     user_id = command["user_id"]
     post_ephemeral_or_dm(
