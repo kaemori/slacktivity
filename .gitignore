@@ -2,3 +2,5 @@
 .venv/
 secrets.env
 database/user_tokens.db
+emoji_list.json
+*__pycache__/
