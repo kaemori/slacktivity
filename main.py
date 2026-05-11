@@ -383,14 +383,12 @@ def badge_remove(ack, command, client):
 
     elements = []
     for b in badges:
-        # Sanitize text and Slack button text has a 75 char limit
         emoji_name = str(b["emoji_name"]).strip()[:30]
         label = str(b["label"]).strip()[:30]
         button_text = f"remove {emoji_name} ({label})"
         if len(button_text) > 75:
             button_text = button_text[:72] + "..."
 
-        # Remove any newlines or problematic characters
         button_text = button_text.replace("\n", " ").replace("\r", " ")
 
         elements.append(
@@ -414,7 +412,11 @@ def badge_remove(ack, command, client):
                 "type": "section",
                 "text": {"type": "mrkdwn", "text": "which badge do u want to remove?"},
             },
-            {"type": "actions", "elements": elements},
+            {
+                "type": "actions",
+                "block_id": "badge_remove_actions",
+                "elements": elements,
+            },
         ],
     )
 
