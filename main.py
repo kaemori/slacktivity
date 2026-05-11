@@ -1,32 +1,34 @@
+import json
 import os
+import re
+import secrets
+import sqlite3
+import string
 import threading
+import time
+from pathlib import Path
+from urllib.parse import quote_plus, unquote_plus, urlencode
+
+import requests
+from card import render_card_sync, render_card_sync_png
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
 from flask import (
     Flask,
-    request,
-    redirect,
-    url_for,
-    jsonify,
-    render_template,
     Response,
     abort,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
 )
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
-from slack_sdk.models.blocks import SectionBlock, ImageBlock
+from slack_sdk.models.blocks import ImageBlock, SectionBlock
 from slack_sdk.models.blocks.basic_components import MarkdownTextObject
-from urllib.parse import urlencode, quote_plus, unquote_plus
-from dotenv import load_dotenv
-import sqlite3
-import requests
-from pathlib import Path
-from cryptography.fernet import Fernet
-import secrets
-import string
-import time
-import json
 from tools.slack_fetch import get_user_data
-from card import render_card_sync, render_card_sync_png
 from tools.update_emojies import try_update_emojies
 
 load_dotenv("secrets.env")
@@ -209,7 +211,7 @@ def get_auth_url():
     state = secrets.token_urlsafe(16)
     _pending_states.add(state)
     return (
-        f"https://slack.com/oauth/v2/authorize?client_id={os.environ["MY_CLIENT_ID"]}&user_scope=users:read,users.profile:read&redirect_uri={REDIRECT_URI}&state={state}",
+        f"https://slack.com/oauth/v2/authorize?client_id={os.environ['MY_CLIENT_ID']}&user_scope=users:read,users.profile:read&redirect_uri={REDIRECT_URI}&state={state}",
         state,
     )
 
@@ -226,9 +228,7 @@ def post_ephemeral_or_dm(client, *, channel_id, user_id, **kwargs):
                 {"type": "section", "text": {"type": "mrkdwn", "text": sorry}}
             ] + list(kwargs["blocks"])
         elif "text" in kwargs:
-            kwargs["text"] = f"""{sorry}
-
-{kwargs['text']}"""
+            kwargs["text"] = f"{sorry}\n\n{kwargs['text']}"
         kwargs.pop("user", None)
         client.chat_postMessage(channel=user_id, **kwargs)
 
@@ -261,7 +261,7 @@ def badge_add(ack, command, client):
         view={
             "type": "modal",
             "callback_id": "slacktivity_badge_add_modal",
-            "private_metadata": f"{user_id}|{command["channel_id"]}",
+            "private_metadata": f"{user_id}|{command['channel_id']}",
             "title": {"type": "plain_text", "text": "add a badge!"},
             "submit": {"type": "plain_text", "text": "add"},
             "close": {"type": "plain_text", "text": "cancel"},
@@ -382,10 +382,10 @@ def badge_remove(ack, command, client):
         return
 
     elements = []
-    for b in badges:
+    for i, b in enumerate(badges):
         emoji_name = str(b["emoji_name"]).strip()[:30]
         label = str(b["label"]).strip()[:30]
-        button_text = f"remove {emoji_name} ({label})"
+        button_text = f"remove :{emoji_name}: ({label})"
         if len(button_text) > 75:
             button_text = button_text[:72] + "..."
 
@@ -398,14 +398,15 @@ def badge_remove(ack, command, client):
                     "type": "plain_text",
                     "text": button_text,
                 },
-                "action_id": "remove_badge",
+                "action_id": f"remove_badge_{i}",
                 "value": f"{user_id}|{b['badge_id']}",
             }
         )
 
-    import json as _json
+    # import json as _json
 
-    print("[badge_remove] elements:", _json.dumps(elements, ensure_ascii=False))
+    # print("[badge_remove] elements:", _json.dumps(elements, ensure_ascii=False))
+    # print(elements)
 
     post_ephemeral_or_dm(
         client,
@@ -424,6 +425,29 @@ def badge_remove(ack, command, client):
             },
         ],
     )
+
+
+@app.action(re.compile(r"remove_badge_\d+"))
+def handle_remove_badge(ack, body, client):
+    ack()
+    value = body["actions"][0]["value"]
+    user_id, badge_id = value.split("|", 1)
+    channel_id = body["container"].get("channel_id", user_id)
+    deleted = db_delete_badge(user_id, badge_id)
+    if deleted:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=channel_id,
+            user_id=user_id,
+            text="badge removed!! :3",
+        )
+    else:
+        post_ephemeral_or_dm(
+            client,
+            channel_id=channel_id,
+            user_id=user_id,
+            text="couldn't find that badge :( maybe it was already removed?",
+        )
 
 
 @app.command("/slacktivity-badge-token")
@@ -627,8 +651,7 @@ def preview(ack, command, client):
         png_link = BASE_LINK + f"/user/{user_id}?format=png"
         message_pretext = SectionBlock(
             text=MarkdownTextObject(
-                text=f"""hi! your svg card can be found <{svg_link}|here>, and your png card can be found <{png_link}|here>!
-the png is also below for you to use~"""
+                text=f"hi! your svg card can be found <{svg_link}|here>, and your png card can be found <{png_link}|here>!\nthe png is also below for you to use~"
             ),
             block_id="pretext-md",
         )
@@ -664,7 +687,7 @@ the png is also below for you to use~"""
                             },
                             "style": "primary",
                             "action_id": "share_card_to_channel",
-                            "value": f"{user_id}|{command["channel_id"]}",
+                            "value": f"{user_id}|{command['channel_id']}",
                         }
                     ],
                 },
@@ -726,7 +749,7 @@ def create(ack, command, client):
         view={
             "type": "modal",
             "callback_id": "slacktivity_create_modal",
-            "private_metadata": f"{user_id}|{command["channel_id"]}",
+            "private_metadata": f"{user_id}|{command['channel_id']}",
             "title": {"type": "plain_text", "text": "customise ur card"},
             "submit": {"type": "plain_text", "text": "preview"},
             "close": {"type": "plain_text", "text": "cancel"},
@@ -1041,8 +1064,7 @@ def handle_create_modal(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"""hi! your svg card can be found <{svg_link}|here>, and your png card can be found <{png_link}|here>!
-the png is also below for you to use~""",
+                    "text": f"hi! your svg card can be found <{svg_link}|here>, and your png card can be found <{png_link}|here>!\nthe png is also below for you to use~",
                 },
             },
             {
@@ -1123,12 +1145,14 @@ def oauth_callback():
     )
     data = resp.json()
     if not data.get("ok"):
-        return f"auth failed: {data.get("error")}", 400
+        return f"auth failed: {data.get('error')}", 400
     authed_user = data.get("authed_user", {})
     user_token = authed_user.get("access_token")
     user_id = authed_user.get("id")
     if not user_token or not user_id:
         return "auth failed: missing token or user id", 400
+
+    print(f"user {user_id} registered!")
     db_set_token(user_id, user_token)
     return render_template("registered.html")
 
