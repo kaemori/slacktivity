@@ -4,7 +4,7 @@
 
 All this, powered by Python.
 
-> **Inspiation?**
+> **Inspiration?**
 > I use Lanyard (cnrad) on my own website to show my Discord activity, but I wanted something similar for Slack. Since there wasn't an existing solution that fit the bill, I decided to create Slacktivity to fill that gap!
 
 ## Features:
