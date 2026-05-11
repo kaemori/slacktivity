@@ -407,6 +407,7 @@ def badge_remove(ack, command, client):
         client,
         channel_id=command["channel_id"],
         user_id=user_id,
+        text="which badge do u want to remove?",
         blocks=[
             {
                 "type": "section",
