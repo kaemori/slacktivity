@@ -10,7 +10,7 @@ All this, powered by Python.
 ## Features:
 
 - Extreme customizability: set themes, backgrounds, border radius, idle messages, and more to create a card that truly represents you!
-- Real-time presence and status updates: the card reflects your current Slack activity, including custom statuses and emojis (Custom emojies only for select servers).
+- Real-time presence and status updates: the card reflects your current Slack activity, including custom statuses and emojis. You can add up to two emoji badges using the `/slacktivity-badge-add` command or the badge API (see docs).
 - Easy sharing: place your activity card on personal websites, or even within Slack itself using the provided links. Uses SVG, but also allows in-link conversion to PNG for platforms that don't support SVG.
 - ...and much more!
 
