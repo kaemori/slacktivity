@@ -403,6 +403,10 @@ def badge_remove(ack, command, client):
             }
         )
 
+    import json as _json
+
+    print("[badge_remove] elements:", _json.dumps(elements, ensure_ascii=False))
+
     post_ephemeral_or_dm(
         client,
         channel_id=command["channel_id"],
