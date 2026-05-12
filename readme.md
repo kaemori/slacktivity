@@ -5,14 +5,23 @@
 All this, powered by Python.
 
 > **Inspiration?**
-> I use Lanyard (cnrad) on my own website to show my Discord activity, but I wanted something similar for Slack. Since there wasn't an existing solution that fit the bill, I decided to create Slacktivity to fill that gap!
+> I use lanyard-profile-readme (cnrad) on my own website to show my Discord activity, but I wanted something similar for Slack. Since there wasn't already an existing solution, I decided to create Slacktivity!
 
-## Features:
+## Usage
 
-- Extreme customizability: set themes, backgrounds, border radius, idle messages, and more to create a card that truly represents you!
-- Real-time presence and status updates: the card reflects your current Slack activity, including custom statuses and emojis. You can add up to two emoji badges using the `/slacktivity-badge-add` command or the badge API (see docs).
-- Easy sharing: place your activity card on personal websites, or even within Slack itself using the provided links. Uses SVG, but also allows in-link conversion to PNG for platforms that don't support SVG.
-- ...and much more!
+On Slack, you can run `/slacktivity-help` for a list of commands you can run. To get started, try running `/slacktivity-register` then `/slacktivity-preview` to see your activity card!
+
+Via API, you will first have to visit `https://slacktivity.hackclub.app/signup` to register manually, then you can use the [API](docs/usage.md) to get your activity data and display it on your own website or application.
+
+Either way, you should have recieved a link like this: https://slacktivity.hackclub.app/user/U0A5TC1FLHL. This link should be embeddable into any website. For example, include the following in your README.md, replacing `<id>` with your Slack user ID:
+
+```markdown
+![Slacktivity](https://slacktivity.hackclub.app/user/<id>)
+```
+
+It should look like the image below:
+
+![Slacktivity](https://slacktivity.hackclub.app/user/U0A5TC1FLHL)
 
 ## Documentation
 
