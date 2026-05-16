@@ -45,20 +45,22 @@ Returns the structured data used for rendering the user's activity card. Require
 
 ```json
 {
-    "success": true,
     "data": {
-        "huddle_state": "default_unset",
         "slack_status": "active",
         "slack_user": {
-            "id": "U12345678",
-            "display_name": "yourname",
-            "real_name": "Full Name",
-            "avatar_url": "https://...png"
+            "avatar_url": "https://...png",
+            "display_name": "John",
+            "id": "U1234567890",
+            "pronouns": "he/him",
+            "real_name": "John Doe",
+            "title": "Husband of Jane Doe",
         },
-        "status_emoji": ":smile:",
-        "status_text": "working on stuff"
-    }
+        "status_emoji": ":wave:",
+        "status_text": "text",
+    },
+    "success": true,
 }
+
 ```
 
 ### Delete User Token
