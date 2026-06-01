@@ -1,12 +1,11 @@
 # Slacktivity
 
 [Slacktivity](https://slacktivity.hackclub.app) is a web service that generates dynamic activity cards based on a user's Slack presence and status!
-> _special thanks to [@cnrad](https://github.com/cnrad) for [lanyard-profile-readme](https://github.com/cnrad/lanyard-profile-readme), huge inspiration!! (...and maybe some design inspiration too!)_
 
 All this, powered by Python.
 
 > **Inspiration?**
-> I use lanyard-profile-readme (cnrad) on my own website to show my Discord activity, but I wanted something similar for Slack. Since there wasn't already an existing solution, I decided to create Slacktivity!
+> I use [lanyard-profile-readme](https://github.com/cnrad/lanyard-profile-readme) (_special thanks [@cnrad](https://github.com/cnrad), huge inspiration!_) on my own website to show my Discord activity, but I wanted something similar for Slack. Since there wasn't already an existing solution, I decided to create Slacktivity!
 
 ## Usage
 
